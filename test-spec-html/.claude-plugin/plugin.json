@@ -1,0 +1,9 @@
+{
+  "name": "test-spec-html",
+  "version": "0.1.0",
+  "description": "機能仕様書(Markdown)を入力に、テスト実施結果(未実施/OK/NG/対象外・実施日・実施者・備考)をブラウザ localStorage に保存できる、単一ファイル完結の HTML テスト仕様書を生成する。",
+  "author": {
+    "name": "h-yamaguchi",
+    "email": "h-yamaguchi@use-eng.co.jp"
+  }
+}
