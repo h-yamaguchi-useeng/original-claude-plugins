@@ -7,9 +7,11 @@ USE Engineering 社内向けの自作 Claude Code プラグイン群を管理す
 
 ## 収録プラグイン
 
-| プラグイン | 説明 |
-|-----------|------|
-| `test-spec-html` | 機能仕様書(Markdown)から、テスト実施結果をブラウザに保存できる単一 HTML のテスト仕様書を生成するスキル |
+現在収録しているプラグインはありません。
+
+> **メモ**：`test-spec-html` は仕様駆動フローとの親和性から `spec-driven-dev-skills` マーケットプレース
+> （プラグイン `spec-driven-toolkit`）へ移動しました。`spec-driven-toolkit@spec-driven-dev-skills` を
+> インストール／更新すると利用できます。
 
 ## リポジトリ構成
 

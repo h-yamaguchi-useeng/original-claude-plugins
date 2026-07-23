@@ -8,11 +8,5 @@
     "description": "USE Engineering 社内向け 自作 Claude Code プラグイン群のマーケットプレース。スキルごとに 1 プラグインとして管理する。",
     "version": "1.0.0"
   },
-  "plugins": [
-    {
-      "name": "test-spec-html",
-      "source": "./test-spec-html",
-      "description": "機能仕様書(Markdown)から、テスト実施結果をブラウザに保存できる単一 HTML のテスト仕様書を生成するスキル"
-    }
-  ]
+  "plugins": []
 }
