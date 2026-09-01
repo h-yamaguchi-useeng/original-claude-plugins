@@ -8,5 +8,11 @@
     "description": "USE Engineering 社内向け 自作 Claude Code プラグイン群のマーケットプレース。スキルごとに 1 プラグインとして管理する。",
     "version": "1.0.0"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "worktree-branch-cleanup",
+      "source": "./worktree-branch-cleanup",
+      "description": "マージ完了後に不要になった git worktree・ローカルブランチ・追跡の残骸を、未マージ分を残したまま安全に削除するスキル"
+    }
+  ]
 }
