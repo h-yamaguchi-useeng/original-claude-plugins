@@ -6,10 +6,18 @@ param(
     [string]$WorktreePath,
     [string]$BranchName,
     [int]$WaitPid = 0,
-    [string]$LogPath
+    [string]$LogPath,
+    # git worktree remove が使えないときにディレクトリごと削除してよいか。
+    # 未コミットの変更が無いことを呼び出し側で確認できたときだけ付ける。
+    # 空のディレクトリはこのスイッチが無くても削除する。
+    [switch]$AllowDirectoryDelete
 )
 
 $ErrorActionPreference = 'Continue'
+
+# git の出力は UTF-8。既定のコードページのままだと日本語を含むパスが化けて
+# worktree の登録判定が外れるため、子プロセス出力の解釈を UTF-8 に固定する。
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 if (-not $LogPath) {
     $LogPath = Join-Path $env:TEMP 'worktree-branch-cleanup.log'
@@ -30,7 +38,25 @@ function Invoke-Git {
     return [pscustomobject]@{ ExitCode = $code; Output = ($output | Out-String).Trim() }
 }
 
-Write-Log "=== start Repo=$RepoPath Worktree=$WorktreePath Branch=$BranchName WaitPid=$WaitPid"
+function ConvertTo-ComparablePath {
+    param([string]$Path)
+    if (-not $Path) { return '' }
+    return $Path.Replace('\', '/').TrimEnd('/').ToLowerInvariant()
+}
+
+function Test-WorktreeRegistered {
+    param([string]$Path)
+    $listed = & git -C $RepoPath worktree list --porcelain 2>&1
+    $target = ConvertTo-ComparablePath $Path
+    foreach ($line in $listed) {
+        if ("$line" -match '^worktree\s+(.+)$') {
+            if ((ConvertTo-ComparablePath $Matches[1]) -eq $target) { return $true }
+        }
+    }
+    return $false
+}
+
+Write-Log "=== start Repo=$RepoPath Worktree=$WorktreePath Branch=$BranchName WaitPid=$WaitPid AllowDirectoryDelete=$AllowDirectoryDelete"
 
 if (-not (Test-Path -LiteralPath $RepoPath)) {
     Write-Log "リポジトリのパスが存在しないため中止する: $RepoPath"
@@ -57,15 +83,49 @@ if (-not $defaultBranch) {
 Write-Log "既定ブランチ: $defaultBranch"
 
 if ($WorktreePath) {
-    if (Test-Path -LiteralPath $WorktreePath) {
+    if (Test-WorktreeRegistered $WorktreePath) {
         $removed = Invoke-Git @('worktree', 'remove', $WorktreePath)
         if ($removed.ExitCode -ne 0) {
-            Write-Log 'worktree を削除できなかった。--force は付けない。内容を確認すること'
+            Write-Log 'git worktree remove が失敗した。--force は付けない'
         }
     }
     else {
-        Write-Log "worktree のパスが既に存在しない: $WorktreePath"
+        Write-Log "worktree として登録されていない: $WorktreePath"
     }
+
+    if (Test-Path -LiteralPath $WorktreePath) {
+        if (Test-WorktreeRegistered $WorktreePath) {
+            Write-Log 'まだ worktree として登録が残っているため、ディレクトリは削除しない（何かが掴んでいる可能性がある）'
+        }
+        else {
+            $entries = @(Get-ChildItem -LiteralPath $WorktreePath -Force -ErrorAction SilentlyContinue)
+            if ($entries.Count -eq 0) {
+                try {
+                    Remove-Item -LiteralPath $WorktreePath -Force -ErrorAction Stop
+                    Write-Log "空のディレクトリを削除した: $WorktreePath"
+                }
+                catch {
+                    Write-Log "空のディレクトリを削除できなかった: $($_.Exception.Message)"
+                }
+            }
+            elseif ($AllowDirectoryDelete) {
+                try {
+                    Remove-Item -LiteralPath $WorktreePath -Recurse -Force -ErrorAction Stop
+                    Write-Log "ディレクトリを削除した: $WorktreePath"
+                }
+                catch {
+                    Write-Log "ディレクトリを削除できなかった: $($_.Exception.Message)"
+                }
+            }
+            else {
+                Write-Log "中身が残っており -AllowDirectoryDelete も指定されていないため残す: $WorktreePath （残り $($entries.Count) 件）"
+            }
+        }
+    }
+    else {
+        Write-Log "worktree のパスは既に存在しない: $WorktreePath"
+    }
+
     Invoke-Git @('worktree', 'prune', '-v') | Out-Null
 }
 
