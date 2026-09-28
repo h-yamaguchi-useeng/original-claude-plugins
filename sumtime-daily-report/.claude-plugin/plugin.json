@@ -1,0 +1,9 @@
+{
+  "name": "sumtime-daily-report",
+  "version": "0.1.0",
+  "description": "その日の GitHub Issue・PR・コミットと Claude Code セッションから作業を集め、SumTime（クラウド工数管理）の予実入力に作業枠とコメントを提案・登録する。",
+  "author": {
+    "name": "h-yamaguchi",
+    "email": "h-yamaguchi@use-eng.co.jp"
+  }
+}

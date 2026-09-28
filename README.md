@@ -7,7 +7,8 @@ USE Engineering 社内向けの自作 Claude Code プラグイン群を管理す
 
 ## 収録プラグイン
 
-現在収録しているプラグインはありません。
+- `worktree-branch-cleanup` … マージ後の worktree・ブランチの後片付け
+- `sumtime-daily-report` … その日の作業から SumTime の予実入力を提案・登録する
 
 > **メモ**：`test-spec-html` は仕様駆動フローとの親和性から `spec-driven-dev-skills` マーケットプレース
 > （プラグイン `spec-driven-toolkit`）へ移動しました。`spec-driven-toolkit@spec-driven-dev-skills` を
