@@ -1,6 +1,6 @@
 ---
 name: sumtime-daily-report
-description: その日の作業（GitHub の自分の Issue コメント・PR・コミット、Claude Code のセッション）を集め、SumTime（クラウド工数管理 sumtime.intra.use-eng.co.jp）の予実入力に、プロジェクト・作業・時間・コメントを提案して登録するスキル。「SumTime に登録」「工数を入力」「今日の実績を入れて」「予実入力」「作業実績のコメントを入れて」「SumTime」などの指示で使用する。
+description: その日の作業（GitHub の自分の Issue コメント・PR・コミット、Claude Code のセッション）を集め、SumTime（クラウド工数管理 sumtime.intra.use-eng.co.jp）の予実入力に、プロジェクト・作業・時間・コメントを提案して登録するスキル。「SumTime に登録」「SUM TIME」「サムタイム」「工数を入力」「工数登録」「実績登録」「今日の実績を入れて」「先週分の実績」「予実入力」「作業実績のコメントを入れて」などの指示で使用する。
 ---
 
 # SumTime 予実入力の自動登録
@@ -14,6 +14,8 @@ description: その日の作業（GitHub の自分の Issue コメント・PR・
   サイドパネルでのサインインを案内して止まる
 - SumTime には**ユーザーが自分でログインする**。パスワードは入力しない
 - 登録（保存・削除）は、提案した一覧にユーザーの明示的な承認をもらってから行う
+- **SumTime を開いている画面は Claude のタブ 1 つだけにする。** ユーザーがログインに使った画面など、
+  ほかに SumTime を開いたタブ・ウィンドウがあれば、登録の前に閉じてもらう（下の「落とし穴」参照）
 
 ## 決まり（ユーザーと合意済み）
 
@@ -35,7 +37,9 @@ description: その日の作業（GitHub の自分の Issue コメント・PR・
 
 1. **対象日を決める**（指定が無ければ今日。JST）
 2. **作業を集める**（自分の分だけ。他の人の PR・コミットは除く）
-   - Issue：`gh search issues --involves @me --updated <日付>` で候補を出し、各 Issue の
+   - Issue：`gh search issues --involves @me --updated ">=<対象日>"` で候補を出し、各 Issue の
+     （`--updated <日付>` や範囲指定にすると、対象日より後にも更新された Issue が漏れる。
+     過去の日を扱うときに特に注意）
      `repos/<owner>/<repo>/issues/<N>/timeline` から、自分が行った操作（commented・closed・
      cross-referenced 等）だけを残す。時刻は UTC なので JST に直す（前日 15:00Z 以降）
    - PR：`gh pr list --state all --search "updated:>=<日付>"` で author が自分のもの
@@ -52,8 +56,12 @@ description: その日の作業（GitHub の自分の Issue コメント・PR・
    - 既存の枠を置き換える・消すときは、そのことを明記する
 5. **承認をもらう。** 訂正は No で受け、表を出し直して再度承認をもらう
 6. **登録する**（後述）
-7. **確かめる。** lists を読み直して全枠の時間・作業・コメントを突き合わせ、
-   画面を再読み込みしてスクリーンショットで確認してから結果を No 付きの表で報告する
+7. **自分のタブを読み込み直す。** API で書いたあとは Claude のタブも古い内容を持っているため、
+   すぐに再読み込みする
+8. **確かめる。** 少し時間を置いてから lists を読み直し、全枠の時間・作業・コメントと、
+   余分な枠が無いことを突き合わせる。画面をスクリーンショットで確認してから結果を No 付きの表で報告する。
+   `updated_at` が自分の書き込みより後の枠があれば、別の画面からの上書きを疑う
+   （`read_network_requests` で自分のタブが送った `update-schedule` の件数と照合できる）
 
 ## SumTime の API（2026-09-28 に実際の保存操作で確認）
 
@@ -93,8 +101,16 @@ await Nova.request().post('/api/sumtime/resources/manhours-inputs/update-schedul
 
 ### 削除
 
-`delete-schedule` があるが、送る中身は**まだ確認していない**。初めて使うときは、下の方法で
-画面の削除操作を 1 回記録してから使う。推測した形で送らない。
+```js
+await Nova.request().post('/api/sumtime/resources/manhours-inputs/delete-schedule',
+  {params:{working_achievement_id: 16223}})
+// 応答: {datas:[]}
+```
+
+（2026-09-28 に画面のゴミ箱ボタンからの削除を記録して確認。画面では「予定を削除します。宜しいですか？」→ OK）
+
+同じ時間帯に枠が重なっていると画面では下の枠を選べない。画面から消すときは、先に
+update-schedule でその枠を空いている時間へずらしてから消す。
 
 ### 送る中身の記録のしかた
 
@@ -111,6 +127,12 @@ this.addEventListener('load',()=>{rec.status=x.status;rec.resp=String(x.response
 
 ## 落とし穴
 
+- **古い内容を持ったまま開いている別の SumTime 画面が、API で書いた内容を上書きする。**
+  2026-09-28 に、ユーザーがログインに使った画面を開いたままにしていたところ、ユーザーが保存操作を
+  していないのに、コメントが元の文言に戻り、重なる時間帯に旧コメントの枠が新しく作られた
+  （Claude のタブが送った件数は意図した分だけだったことを `read_network_requests` で確認）。
+  画面を閉じたあとは起きていない。どの操作で保存が走るのかは未確認。
+  登録前に他の SumTime 画面を閉じてもらい、登録後は自分のタブも読み込み直す
 - `javascript_tool` の結果に URL のクエリ文字列等が含まれると `[BLOCKED: Cookie/query string data]`
   で返らない。結果は `window.__x` に入れ、必要な項目だけに絞って返す
 - `javascript_tool` はページのスコープを共有するため、トップレベルの `const` を 2 回目に宣言すると
