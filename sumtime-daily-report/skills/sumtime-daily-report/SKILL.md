@@ -38,10 +38,10 @@ description: その日の作業（GitHub の自分の Issue コメント・PR・
 1. **対象日を決める**（指定が無ければ今日。JST）
 2. **作業を集める**（自分の分だけ。他の人の PR・コミットは除く）
    - Issue：`gh search issues --involves @me --updated ">=<対象日>"` で候補を出し、各 Issue の
-     （`--updated <日付>` や範囲指定にすると、対象日より後にも更新された Issue が漏れる。
-     過去の日を扱うときに特に注意）
-     `repos/<owner>/<repo>/issues/<N>/timeline` から、自分が行った操作（commented・closed・
-     cross-referenced 等）だけを残す。時刻は UTC なので JST に直す（前日 15:00Z 以降）
+     `repos/<owner>/<repo>/issues/<N>/timeline` から、対象日に自分が行った操作（commented・closed・
+     cross-referenced 等）だけを残す。時刻は UTC なので JST に直す（前日 15:00Z 以降）。
+     `--updated <日付>` や範囲指定にすると、対象日より後にも更新された Issue が漏れる
+     （過去の日を扱うときに特に注意）
    - PR：`gh pr list --state all --search "updated:>=<日付>"` で author が自分のもの
    - コミット：`git log --all --since=<日付> --author=<自分>`
    - セッション：`list_sessions`（`include_archived: true`）の `lastActivityAt` が対象日のもの。
