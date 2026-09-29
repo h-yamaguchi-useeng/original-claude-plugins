@@ -18,6 +18,11 @@
       "name": "sumtime-daily-report",
       "source": "./sumtime-daily-report",
       "description": "その日の GitHub Issue・PR・コミットと Claude Code セッションから作業を集め、SumTime の予実入力に作業枠とコメントを提案・登録するスキル"
+    },
+    {
+      "name": "hrmos-timecard-check",
+      "source": "./hrmos-timecard-check",
+      "description": "HRMOS勤怠の打刻漏れ・打刻誤りの日を拾い、PC のイベントログと Claude への指示履歴から出勤・退勤時刻の候補を出して「登録する」で補正するスキル"
     }
   ]
 }
