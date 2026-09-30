@@ -41,6 +41,14 @@ PR がマージされ、作業に使った worktree・ブランチが不要に�
 - **PowerShell から `git` の出力を読むときは `[Console]::OutputEncoding` を UTF-8 に固定する。**
   既定のコードページのままだと日本語を含むパス（`C:\Users\山口敬史\`、`Git - コクヨ` など）が化け、
   `git worktree list` との突き合わせが必ず外れる（実測。`cleanup-after-exit.ps1` では対処済み）
+- **Claude Code のプロセスはチャットのウィンドウを閉じても終了しない。**
+  終了タイミングは Claude 側の管理下にあり、操作からは読めない。
+  そのため「プロセス終了を待つ常駐」だけでは、1 日の最後に後片付けすると
+  PC の終了が先に来てゴミが残る（実測）
+- **ロック中のディレクトリは `Move-Item` による退避もできない。** `Remove-Item` と同じく使用中になる（実測）
+- **`rd`（`cmd.exe`）は空でないディレクトリには何もしない。** 空でなければ
+  `ディレクトリが空ではありません`（exit 145）でディレクトリを残し、空なら削除する（実測）。
+  この性質があるため RunOnce の保険として安全に置ける
 - **`ExitWorktree` は「このセッションの `EnterWorktree` で作った」worktree にしか効かない。**
   前のセッションで作ったものはパスが `.claude/worktrees/` 配下でも no-op で返る
   （`No-op: there is no active EnterWorktree session to exit.`）
@@ -156,7 +164,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File <スキルの assets>/cleanu
   -WorktreePath "<削除する worktree のパス>" `
   -BranchName "<削除するブランチ名>" `
   -WaitPid <待機するプロセスID> `
-  -AllowDirectoryDelete
+  -AllowDirectoryDelete `
+  -RegisterRunOnce
 ```
 
 - `-WaitPid` には Claude Code 本体のプロセス ID を渡す。省略すると待たずに実行する
@@ -166,12 +175,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File <スキルの assets>/cleanu
     このスイッチは、**手順5の 1 で「未コミットの変更なし」を確認できたときだけ**付ける。
     付いていなければ削除せずログに残す
 - ブランチ削除は手順4と同じツリー一致判定を行い、通らなければ残す
+- `-RegisterRunOnce` を付けると、**待機に入る前に** `HKCU\...\RunOnce` へ
+  `cmd.exe /c rd "<パス>"` を登録する。待機中に PC が終了しても、次回ログオン時に 1 回だけ削除が走る。
+  管理者権限は不要で、RunOnce のエントリは実行時に自動で消える
+  - `-AllowDirectoryDelete` も付いている場合だけ `rd /s /q` になる。付いていなければ素の `rd` なので、
+    中身が残っているディレクトリには何もしない
+  - 常駐側でディレクトリを削除できた場合は、その場で RunOnce の登録を解除する
+  - **保険が片付けるのはディレクトリだけ。** ブランチ削除と `prune` は常駐側の担当なので、
+    PC 終了が先に来た場合はブランチが残る。次回セッションの手順6 で拾う
 - 実行結果は `-LogPath`（既定: ユーザーの TEMP 配下）に追記される。次のセッションで結果を確認できる
 
 起動は親から切り離して行う。
 
 ```
-Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','<スクリプトパス>','-RepoPath','<...>','-WorktreePath','<...>','-BranchName','<...>','-WaitPid','<...>','-AllowDirectoryDelete'
+Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','<スクリプトパス>','-RepoPath','<...>','-WorktreePath','<...>','-BranchName','<...>','-WaitPid','<...>','-AllowDirectoryDelete','-RegisterRunOnce'
 ```
 
 スクリプトを起動したら、**ユーザーにログの場所と、削除がセッション終了後に行われることを伝える**。

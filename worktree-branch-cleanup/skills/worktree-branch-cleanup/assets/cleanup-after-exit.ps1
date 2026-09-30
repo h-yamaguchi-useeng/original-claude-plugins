@@ -10,7 +10,10 @@ param(
     # git worktree remove が使えないときにディレクトリごと削除してよいか。
     # 未コミットの変更が無いことを呼び出し側で確認できたときだけ付ける。
     # 空のディレクトリはこのスイッチが無くても削除する。
-    [switch]$AllowDirectoryDelete
+    [switch]$AllowDirectoryDelete,
+    # 常駐待機の保険として HKCU の RunOnce にディレクトリ削除を登録するか。
+    # 待機中に PC が終了しても、次回ログオン時に 1 回だけ削除が走る。
+    [switch]$RegisterRunOnce
 )
 
 $ErrorActionPreference = 'Continue'
@@ -56,11 +59,55 @@ function Test-WorktreeRegistered {
     return $false
 }
 
-Write-Log "=== start Repo=$RepoPath Worktree=$WorktreePath Branch=$BranchName WaitPid=$WaitPid AllowDirectoryDelete=$AllowDirectoryDelete"
+$script:RunOnceKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce'
+
+function Get-RunOnceName {
+    param([string]$Path)
+    return 'worktree-branch-cleanup-' + (Split-Path $Path -Leaf)
+}
+
+function Register-RunOnceRemoval {
+    param([string]$Path, [bool]$Recurse)
+    # rd は空でないディレクトリには何もしない。中身ごと消してよいと明示された場合だけ /s /q を付ける。
+    $windowsPath = $Path.Replace('/', '\')
+    $switches = if ($Recurse) { '/s /q ' } else { '' }
+    $command = 'cmd.exe /c rd ' + $switches + '"' + $windowsPath + '"'
+    try {
+        if (-not (Test-Path -LiteralPath $script:RunOnceKey)) {
+            New-Item -Path $script:RunOnceKey -Force | Out-Null
+        }
+        New-ItemProperty -Path $script:RunOnceKey -Name (Get-RunOnceName $Path) -Value $command -PropertyType String -Force | Out-Null
+        Write-Log "RunOnce に登録した: $command"
+    }
+    catch {
+        Write-Log "RunOnce に登録できなかった: $($_.Exception.Message)"
+    }
+}
+
+function Unregister-RunOnceRemoval {
+    param([string]$Path)
+    try {
+        $name = Get-RunOnceName $Path
+        if (Get-ItemProperty -Path $script:RunOnceKey -Name $name -ErrorAction SilentlyContinue) {
+            Remove-ItemProperty -Path $script:RunOnceKey -Name $name -ErrorAction Stop
+            Write-Log "RunOnce の登録を解除した: $name"
+        }
+    }
+    catch {
+        Write-Log "RunOnce の登録を解除できなかった: $($_.Exception.Message)"
+    }
+}
+
+Write-Log "=== start Repo=$RepoPath Worktree=$WorktreePath Branch=$BranchName WaitPid=$WaitPid AllowDirectoryDelete=$AllowDirectoryDelete RegisterRunOnce=$RegisterRunOnce"
 
 if (-not (Test-Path -LiteralPath $RepoPath)) {
     Write-Log "リポジトリのパスが存在しないため中止する: $RepoPath"
     exit 1
+}
+
+# 待機の前に登録する。待っている間に PC が終了しても次回ログオンで片付くようにするため。
+if ($RegisterRunOnce -and $WorktreePath) {
+    Register-RunOnceRemoval -Path $WorktreePath -Recurse ([bool]$AllowDirectoryDelete)
 }
 
 if ($WaitPid -gt 0) {
@@ -124,6 +171,10 @@ if ($WorktreePath) {
     }
     else {
         Write-Log "worktree のパスは既に存在しない: $WorktreePath"
+    }
+
+    if ($RegisterRunOnce -and -not (Test-Path -LiteralPath $WorktreePath)) {
+        Unregister-RunOnceRemoval -Path $WorktreePath
     }
 
     Invoke-Git @('worktree', 'prune', '-v') | Out-Null

@@ -1,6 +1,6 @@
 {
   "name": "worktree-branch-cleanup",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "マージ完了後に不要になった git worktree・ローカルブランチ・追跡の残骸を、未マージ分を残したまま安全に削除する。squash マージで git branch -d が使えないリポジトリにも対応する。",
   "author": {
     "name": "h-yamaguchi",
