@@ -1,6 +1,6 @@
 {
   "name": "hrmos-timecard-check",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "HRMOS勤怠の日次勤怠から打刻漏れ・打刻誤りの日を拾い、Windows のイベントログと Claude への指示履歴から出勤・退勤時刻の候補を出して、承認後に「登録する」で補正する。",
   "author": {
     "name": "h-yamaguchi",
