@@ -10,6 +10,7 @@ USE Engineering 社内向けの自作 Claude Code プラグイン群を管理す
 - `worktree-branch-cleanup` … マージ後の worktree・ブランチの後片付け
 - `sumtime-daily-report` … その日の作業から SumTime の予実入力を提案・登録する
 - `hrmos-timecard-check` … HRMOS勤怠の打刻漏れを PC の操作記録から補正する
+- `session-done-mark` … 「完了」の一言でセッションタイトルに【完了】を付ける（後片付けはしない）
 
 > **メモ**：`test-spec-html` は仕様駆動フローとの親和性から `spec-driven-dev-skills` マーケットプレース
 > （プラグイン `spec-driven-toolkit`）へ移動しました。`spec-driven-toolkit@spec-driven-dev-skills` を

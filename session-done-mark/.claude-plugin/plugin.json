@@ -1,0 +1,9 @@
+{
+  "name": "session-done-mark",
+  "version": "0.1.0",
+  "description": "「完了」と一言だけ入力されたときに、worktree・ブランチには触れず、セッションタイトルの先頭に【完了】を付けるだけのスキル。",
+  "author": {
+    "name": "h-yamaguchi",
+    "email": "h-yamaguchi@use-eng.co.jp"
+  }
+}

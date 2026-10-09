@@ -23,6 +23,11 @@
       "name": "hrmos-timecard-check",
       "source": "./hrmos-timecard-check",
       "description": "HRMOS勤怠の打刻漏れ・打刻誤りの日を拾い、PC のイベントログと Claude への指示履歴から出勤・退勤時刻の候補を出して「登録する」で補正するスキル"
+    },
+    {
+      "name": "session-done-mark",
+      "source": "./session-done-mark",
+      "description": "「完了」と一言だけ入力されたときに、worktree・ブランチには触れずセッションタイトルの先頭に【完了】を付けるだけのスキル"
     }
   ]
 }
